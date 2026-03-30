@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import BrandLogo from '../components/BrandLogo'
+import { apiRequest, getActiveRole } from '../lib/api'
 
 const initialNotifications = [
   {
@@ -201,6 +202,7 @@ function NotificationCard({ notification, onToggleRead, onDismiss, index }) {
 }
 
 function NotificationsPage() {
+  const activeRole = getActiveRole()
   const [notifications, setNotifications] = useState(initialNotifications)
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch] = useState('')
@@ -210,6 +212,32 @@ function NotificationsPage() {
   const [viewState, setViewState] = useState('default')
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadNotifications = async () => {
+      try {
+        const response = await apiRequest(`/notifications?role=${activeRole}`)
+
+        if (!cancelled) {
+          setNotifications(response.items || [])
+        }
+      } catch (requestError) {
+        if (!cancelled) {
+          setViewState('error')
+          setToast('Live notification sync failed. Showing local snapshot.')
+          setTimeout(() => setToast(''), 2200)
+        }
+      }
+    }
+
+    loadNotifications()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeRole])
 
   const stats = useMemo(() => {
     const unread = notifications.filter((item) => !item.read).length
@@ -269,31 +297,81 @@ function NotificationsPage() {
       })
   }, [notifications, activeTab, sourceFilter, priorityFilter, timeFilter, search])
 
-  const toggleRead = (id) => {
-    setNotifications((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, read: !item.read } : item,
-      ),
-    )
+  const toggleRead = async (id) => {
+    const target = notifications.find((item) => item.id === id)
+    if (!target) {
+      return
+    }
+
+    try {
+      const response = await apiRequest(`/notifications/${id}/read`, {
+        method: 'PATCH',
+        body: {
+          role: activeRole,
+          read: !target.read,
+        },
+      })
+
+      setNotifications((current) =>
+        current.map((item) => (item.id === id ? response.item : item)),
+      )
+    } catch (requestError) {
+      setToast(requestError.message || 'Unable to update notification state.')
+      setTimeout(() => setToast(''), 2200)
+    }
   }
 
-  const dismissNotification = (id) => {
-    setNotifications((current) => current.filter((item) => item.id !== id))
+  const dismissNotification = async (id) => {
+    try {
+      const response = await apiRequest(`/notifications/${id}?role=${activeRole}`, {
+        method: 'DELETE',
+        body: { role: activeRole },
+      })
+
+      setNotifications(response.items || [])
+    } catch (requestError) {
+      setToast(requestError.message || 'Unable to dismiss notification.')
+      setTimeout(() => setToast(''), 2200)
+    }
   }
 
-  const markAllAsRead = () => {
-    setNotifications((current) =>
-      current.map((item) => ({ ...item, read: true })),
-    )
+  const markAllAsRead = async () => {
+    try {
+      const response = await apiRequest('/notifications/mark-all-read', {
+        method: 'POST',
+        body: { role: activeRole },
+      })
+
+      setNotifications(response.items || [])
+    } catch (requestError) {
+      setToast(requestError.message || 'Unable to mark all notifications as read.')
+      setTimeout(() => setToast(''), 2200)
+    }
   }
 
-  const clearRead = () => {
-    setNotifications((current) => current.filter((item) => !item.read))
+  const clearRead = async () => {
+    try {
+      const response = await apiRequest('/notifications/clear-read', {
+        method: 'POST',
+        body: { role: activeRole },
+      })
+
+      setNotifications(response.items || [])
+    } catch (requestError) {
+      setToast(requestError.message || 'Unable to clear read notifications.')
+      setTimeout(() => setToast(''), 2200)
+    }
   }
 
-  const exportLog = () => {
-    setToast('Export action is a UI placeholder for now.')
-    setTimeout(() => setToast(''), 2200)
+  const exportLog = async () => {
+    try {
+      const response = await apiRequest('/notifications/delivery-log')
+      setToast(`Fetched ${response.items.length} email delivery records.`)
+      setTimeout(() => setToast(''), 2200)
+    } catch (requestError) {
+      setToast(requestError.message || 'Unable to fetch delivery log.')
+      setTimeout(() => setToast(''), 2200)
+    }
   }
 
   return (

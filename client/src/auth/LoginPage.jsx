@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import BrandLogo from '../components/BrandLogo'
+import { apiRequest, setActiveRole } from '../lib/api'
 
 const features = [
   {
@@ -45,29 +46,27 @@ function LoginPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  const roleRouteByEmail = {
-    'admin@launchpadcicf.in': '/admin/dashboard',
-    'faculty@launchpadcicf.in': '/faculty/dashboard',
-    'incubatee@launchpadcicf.in': '/incubatee/dashboard',
-  }
-
-  const onSubmit = (event) => {
+  const onSubmit = async (event) => {
     event.preventDefault()
     setIsLoading(true)
     setError('')
 
-    setTimeout(() => {
+    try {
+      const response = await apiRequest('/auth/login', {
+        method: 'POST',
+        body: {
+          email,
+          password,
+        },
+      })
+
+      setActiveRole(response.user.role)
+      navigate(response.redirectTo)
+    } catch (requestError) {
+      setError(requestError.message || 'Login failed. Please try again.')
+    } finally {
       setIsLoading(false)
-      const normalizedEmail = email.trim().toLowerCase()
-      const destinationRoute = roleRouteByEmail[normalizedEmail]
-
-      if (!destinationRoute || password !== 'LaunchPad@123') {
-        setError('Invalid credentials. Please check your email or password.')
-        return
-      }
-
-      navigate(destinationRoute)
-    }, 1000)
+    }
   }
 
   return (

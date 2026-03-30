@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import BrandLogo from '../components/BrandLogo'
+import { apiRequest } from '../lib/api'
 
 const vaultNotes = [
   {
@@ -63,21 +64,22 @@ function ForgotResetPage() {
   const passwordValid = Object.values(passwordRules).every(Boolean)
   const passwordMismatch = confirmPassword.length > 0 && confirmPassword !== newPassword
 
-  const submitForgot = (event) => {
+  const submitForgot = async (event) => {
     event.preventDefault()
     setForgotStatus('loading')
 
-    setTimeout(() => {
-      if (!email.trim() || !email.includes('@')) {
-        setForgotStatus('error')
-        return
-      }
-
+    try {
+      await apiRequest('/auth/forgot-password', {
+        method: 'POST',
+        body: { email },
+      })
       setForgotStatus('success')
-    }, 900)
+    } catch (requestError) {
+      setForgotStatus('error')
+    }
   }
 
-  const submitReset = (event) => {
+  const submitReset = async (event) => {
     event.preventDefault()
 
     if (!passwordValid || passwordMismatch) {
@@ -86,19 +88,29 @@ function ForgotResetPage() {
 
     setResetStatus('loading')
 
-    setTimeout(() => {
-      if (tokenMode === 'invalid') {
+    try {
+      await apiRequest('/auth/reset-password', {
+        method: 'POST',
+        body: {
+          email,
+          newPassword,
+          tokenMode,
+        },
+      })
+      setResetStatus('success')
+    } catch (requestError) {
+      if (requestError.code === 'invalid_token') {
         setResetStatus('invalid')
         return
       }
 
-      if (tokenMode === 'expired') {
+      if (requestError.code === 'expired_token') {
         setResetStatus('expired')
         return
       }
 
-      setResetStatus('success')
-    }, 900)
+      setResetStatus('error')
+    }
   }
 
   return (
@@ -278,6 +290,21 @@ function ForgotResetPage() {
 
                     <form className="mt-5 space-y-5" onSubmit={submitReset} noValidate>
                       <div>
+                        <label htmlFor="reset-email" className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                          Account Email
+                        </label>
+                        <input
+                          id="reset-email"
+                          type="email"
+                          value={email}
+                          onChange={(event) => setEmail(event.target.value)}
+                          className="lp-focus w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900"
+                          disabled={resetStatus === 'loading'}
+                          required
+                        />
+                      </div>
+
+                      <div>
                         <label htmlFor="new-password" className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                           New Password
                         </label>
@@ -330,6 +357,12 @@ function ForgotResetPage() {
                       {resetStatus === 'expired' ? (
                         <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700" role="alert" aria-live="polite">
                           Reset token expired. Please generate a fresh link from the Forgot view.
+                        </p>
+                      ) : null}
+
+                      {resetStatus === 'error' ? (
+                        <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert" aria-live="polite">
+                          Password reset failed. Please verify email and try again.
                         </p>
                       ) : null}
 

@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import BrandLogo from '../components/BrandLogo'
+import { apiRequest, getActiveRole } from '../lib/api'
 
 const sectionMeta = [
   {
@@ -157,6 +158,7 @@ function SkeletonPanel() {
 }
 
 function SettingsPage() {
+  const activeRole = getActiveRole()
   const baselineRef = useRef(defaultSettings)
 
   const [settings, setSettings] = useState(defaultSettings)
@@ -168,6 +170,46 @@ function SettingsPage() {
   const [banner, setBanner] = useState(null)
   const [lastSaveScope, setLastSaveScope] = useState('all')
   const [forceErrorNextSave, setForceErrorNextSave] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadInitialSettings = async () => {
+      try {
+        const settingsResponse = await apiRequest(`/settings?role=${activeRole}`)
+        const sessionsResponse = await apiRequest(`/settings/sessions?role=${activeRole}`)
+
+        if (cancelled) {
+          return
+        }
+
+        const hydrated = {
+          ...defaultSettings,
+          ...settingsResponse.settings,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        }
+
+        setSettings(hydrated)
+        baselineRef.current = hydrated
+        setSessions(sessionsResponse.sessions || [])
+      } catch (requestError) {
+        if (!cancelled) {
+          setBanner({
+            type: 'error',
+            message: requestError.message || 'Unable to load settings from backend.',
+          })
+        }
+      }
+    }
+
+    loadInitialSettings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeRole])
 
   const updateSetting = (field, value) => {
     setSettings((current) => ({ ...current, [field]: value }))
@@ -245,7 +287,7 @@ function SettingsPage() {
     setSaveStatus('idle')
   }
 
-  const triggerSave = (scope = 'all') => {
+  const triggerSave = async (scope = 'all') => {
     setLastSaveScope(scope)
     const validation = validateSave(scope)
 
@@ -258,43 +300,87 @@ function SettingsPage() {
     setSaveStatus('loading')
     setBanner(null)
 
-    setTimeout(() => {
+    try {
       if (forceErrorNextSave) {
-        setSaveStatus('error')
-        setBanner({
-          type: 'error',
-          message:
-            'Sync failed due to a temporary network issue. Please retry.',
-        })
         setForceErrorNextSave(false)
-        return
+        throw new Error('Sync failed due to a temporary network issue. Please retry.')
       }
+
+      const payload = {
+        ...settings,
+      }
+
+      const response = await apiRequest(`/settings?role=${activeRole}`, {
+        method: 'PATCH',
+        body: {
+          role: activeRole,
+          settings: payload,
+        },
+      })
+
+      const normalized = {
+        ...defaultSettings,
+        ...response.settings,
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      }
+
+      baselineRef.current = normalized
+      setSettings(normalized)
+
+      const sessionsResponse = await apiRequest(`/settings/sessions?role=${activeRole}`)
+      setSessions(sessionsResponse.sessions || [])
 
       setSaveStatus('success')
       setBanner({
         type: 'success',
         message: 'Settings updated successfully. Your preferences are synchronized.',
       })
-      baselineRef.current = { ...settings }
-      setSettings((current) => ({
-        ...current,
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      }))
-    }, 850)
+    } catch (requestError) {
+      setSaveStatus('error')
+      setBanner({
+        type: 'error',
+        message: requestError.message || 'Sync failed due to a temporary network issue. Please retry.',
+      })
+    }
   }
 
-  const revokeSession = (sessionId) => {
-    setSessions((current) => current.filter((session) => session.id !== sessionId))
+  const revokeSession = async (sessionId) => {
+    try {
+      const response = await apiRequest(`/settings/sessions/${sessionId}?role=${activeRole}`, {
+        method: 'DELETE',
+        body: { role: activeRole },
+      })
+
+      setSessions(response.sessions || [])
+    } catch (requestError) {
+      setBanner({
+        type: 'error',
+        message: requestError.message || 'Unable to revoke session.',
+      })
+    }
   }
 
-  const signOutOtherSessions = () => {
-    setSessions((current) => current.filter((session) => session.current))
-    setBanner({
-      type: 'success',
-      message: 'All other sessions have been signed out.',
-    })
+  const signOutOtherSessions = async () => {
+    try {
+      const response = await apiRequest('/settings/sessions/signout-others', {
+        method: 'POST',
+        body: { role: activeRole },
+      })
+
+      setSessions(response.sessions || [])
+      setBanner({
+        type: 'success',
+        message: 'All other sessions have been signed out.',
+      })
+    } catch (requestError) {
+      setSaveStatus('error')
+      setBanner({
+        type: 'error',
+        message: requestError.message || 'Unable to sign out other sessions.',
+      })
+    }
   }
 
   const toggleMobileSection = (sectionId) => {
