@@ -1,4 +1,9 @@
 const { randomUUID } = require('node:crypto')
+const {
+  isSupabaseStateEnabled,
+  loadRuntimeState,
+  saveRuntimeState,
+} = require('./supabaseStateStore')
 
 const roleHomeRoute = {
   admin: '/admin/dashboard',
@@ -51,6 +56,54 @@ function normalizeRole(role) {
   }
 
   return 'admin'
+}
+
+function safeStructuredClone(value) {
+  if (typeof globalThis.structuredClone === 'function') {
+    return globalThis.structuredClone(value)
+  }
+
+  return JSON.parse(JSON.stringify(value))
+}
+
+function deepMerge(defaultValue, incomingValue) {
+  if (defaultValue instanceof Map) {
+    if (incomingValue instanceof Map) {
+      return new Map(incomingValue)
+    }
+
+    if (Array.isArray(incomingValue)) {
+      return new Map(incomingValue)
+    }
+
+    return new Map(defaultValue)
+  }
+
+  if (Array.isArray(defaultValue)) {
+    return Array.isArray(incomingValue) ? incomingValue : safeStructuredClone(defaultValue)
+  }
+
+  if (defaultValue && typeof defaultValue === 'object') {
+    const incomingObject =
+      incomingValue && typeof incomingValue === 'object' && !Array.isArray(incomingValue)
+        ? incomingValue
+        : {}
+
+    const merged = {}
+    const keys = new Set([...Object.keys(defaultValue), ...Object.keys(incomingObject)])
+
+    keys.forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(defaultValue, key)) {
+        merged[key] = deepMerge(defaultValue[key], incomingObject[key])
+      } else {
+        merged[key] = safeStructuredClone(incomingObject[key])
+      }
+    })
+
+    return merged
+  }
+
+  return incomingValue === undefined ? defaultValue : incomingValue
 }
 
 const db = {
@@ -266,6 +319,95 @@ const db = {
   incubateeFeedbackTimeline: [],
 
   systemTemplates: [],
+}
+
+const initialDbState = safeStructuredClone(db)
+let hasHydratedDb = false
+let hydratePromise = null
+let persistPromise = Promise.resolve()
+
+function serializeDbState() {
+  const snapshot = safeStructuredClone(db)
+
+  if (db.passwordResetTokens instanceof Map) {
+    snapshot.passwordResetTokens = Array.from(db.passwordResetTokens.entries())
+  }
+
+  return snapshot
+}
+
+function normalizePersistedDbState(state) {
+  const merged = deepMerge(initialDbState, state || {})
+
+  if (!(merged.passwordResetTokens instanceof Map)) {
+    if (Array.isArray(merged.passwordResetTokens)) {
+      merged.passwordResetTokens = new Map(merged.passwordResetTokens)
+    } else {
+      merged.passwordResetTokens = new Map()
+    }
+  }
+
+  return merged
+}
+
+function applyDbState(nextState) {
+  Object.keys(db).forEach((key) => {
+    delete db[key]
+  })
+
+  Object.assign(db, nextState)
+}
+
+async function ensureDbHydrated() {
+  if (hasHydratedDb) {
+    return
+  }
+
+  if (hydratePromise) {
+    await hydratePromise
+    return
+  }
+
+  hydratePromise = (async () => {
+    if (!isSupabaseStateEnabled()) {
+      hasHydratedDb = true
+      return
+    }
+
+    try {
+      const runtimeState = await loadRuntimeState(serializeDbState())
+      const normalized = normalizePersistedDbState(runtimeState)
+      applyDbState(normalized)
+    } catch (error) {
+      console.error('[store] Supabase runtime state load failed, using in-memory fallback:', error.message)
+    } finally {
+      hasHydratedDb = true
+    }
+  })()
+
+  await hydratePromise
+  hydratePromise = null
+}
+
+function persistDbState() {
+  if (!isSupabaseStateEnabled()) {
+    return Promise.resolve(false)
+  }
+
+  const snapshot = serializeDbState()
+
+  persistPromise = persistPromise
+    .then(() => saveRuntimeState(snapshot))
+    .catch((error) => {
+      console.error('[store] Supabase runtime state persist failed:', error.message)
+      return false
+    })
+
+  return persistPromise
+}
+
+async function flushDbState() {
+  await persistPromise
 }
 
 function findUserByEmail(email) {
@@ -821,6 +963,9 @@ module.exports = {
   clone,
   roleHomeRoute,
   db,
+  ensureDbHydrated,
+  persistDbState,
+  flushDbState,
   findUserByEmail,
   verifyUserCredentials,
   createAuthSession,

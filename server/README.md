@@ -6,7 +6,7 @@ Role-based backend API for Admin, Faculty, and Incubatee workflows.
 
 - Consistent workflow transitions across submissions, reviews, and claims
 - Email-first notification model via Resend (with mock fallback when keys are missing)
-- In-memory data store for rapid development and frontend wiring
+- Supabase-backed runtime state via `app_runtime_state` (service-role server access)
 
 ## Run Locally
 
@@ -14,10 +14,22 @@ Role-based backend API for Admin, Faculty, and Incubatee workflows.
    - `npm install`
 2. Copy env template:
    - `cp .env.example .env` (or create `.env` manually on Windows)
-3. Start dev server:
+3. Apply database schema in Supabase SQL Editor:
+   - Run `server/sql/01_supabase_schema_clean.sql`
+4. Start dev server:
    - `npm run dev`
 
 Server starts on `http://localhost:4000` by default.
+
+## Supabase Notes
+
+- Required env values:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `SUPABASE_STATE_TABLE` (defaults to `app_runtime_state`)
+   - `SUPABASE_STATE_ROW_ID` (defaults to `launchpad_runtime`)
+- The backend hydrates runtime state from Supabase on startup and persists write requests.
+- To hard reset data in Supabase, run `server/sql/03_truncate_all_tables.sql`.
 
 ## Core Routes
 

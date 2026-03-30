@@ -156,6 +156,14 @@ end;
 $$;
 
 -- Core auth/user tables
+create table if not exists app_runtime_state (
+  id text primary key,
+  payload jsonb not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint chk_runtime_payload_object check (jsonb_typeof(payload) = 'object')
+);
+
 create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
@@ -617,6 +625,10 @@ create index if not exists idx_email_delivery_sent_at on email_delivery_log (sen
 create index if not exists idx_email_delivery_role on email_delivery_log (audience_role);
 
 -- updated_at triggers
+DROP TRIGGER IF EXISTS trg_app_runtime_state_updated_at ON app_runtime_state;
+CREATE TRIGGER trg_app_runtime_state_updated_at BEFORE UPDATE ON app_runtime_state
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
 CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON users
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();

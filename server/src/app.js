@@ -1,6 +1,9 @@
+require('dotenv').config()
+
 const express = require('express')
 const cors = require('cors')
 const morgan = require('morgan')
+const { ensureDbHydrated, persistDbState } = require('./data/store')
 
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler')
 const healthRoutes = require('./routes/healthRoutes')
@@ -28,6 +31,25 @@ app.use(
 
 app.use(express.json({ limit: '2mb' }))
 app.use(morgan('dev'))
+
+app.use(async (req, res, next) => {
+  try {
+    await ensureDbHydrated()
+    next()
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.use((req, res, next) => {
+  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) {
+    res.on('finish', () => {
+      persistDbState()
+    })
+  }
+
+  next()
+})
 
 app.get('/', (req, res) => {
   res.json({

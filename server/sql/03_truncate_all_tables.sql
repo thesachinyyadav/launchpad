@@ -1,6 +1,7 @@
 -- LaunchPad CICF - hard reset data only (keeps schema)
 -- Use this anytime you want a completely clean database state.
 
+truncate table app_runtime_state restart identity cascade;
 truncate table auth_sessions restart identity cascade;
 truncate table password_reset_tokens restart identity cascade;
 truncate table role_device_sessions restart identity cascade;
