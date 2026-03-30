@@ -299,7 +299,7 @@ function NotificationsPage() {
   return (
     <div className="min-h-screen bg-[#F6F8FC] text-lp-navy lg:flex">
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between bg-gradient-to-r from-lp-navy to-[#13243d] px-4 shadow-lg lg:hidden">
-        <BrandLogo compact className="[&>img]:h-9" />
+        <BrandLogo compact className="[&>span]:text-lg" />
         <div className="flex items-center gap-2">
           <button
             type="button"

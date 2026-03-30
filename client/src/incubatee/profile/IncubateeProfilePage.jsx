@@ -267,7 +267,7 @@ function IncubateeProfilePage() {
             <div className="hidden h-8 w-px bg-slate-200 sm:block" />
             <div className="hidden items-center gap-3 sm:flex">
               <span className="rounded-lg bg-lp-navy p-2 text-white">
-                <img src="/logo.svg" alt="Startup logo" className="h-4 w-4" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.1em]">LP</span>
               </span>
               <div>
                 <h2 className="text-sm font-bold leading-tight text-lp-navy">
