@@ -16,15 +16,29 @@ const adminRoutes = require('./routes/adminRoutes')
 
 const app = express()
 
-const allowedOrigins = [
+const allowedOrigins = new Set([
   process.env.CLIENT_ORIGIN,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
-].filter(Boolean)
+].filter(Boolean))
+
+const localDevOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true)
+        return
+      }
+
+      if (allowedOrigins.has(origin) || localDevOriginPattern.test(origin)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error('Not allowed by CORS'))
+    },
     credentials: true,
   }),
 )
