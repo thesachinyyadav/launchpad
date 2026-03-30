@@ -911,13 +911,13 @@ begin
     else 'pending'
   end;
 
-  update faculty_reviews
+  update faculty_reviews as fr
   set status = v_review_status,
       comment = case when coalesce(trim(p_comment), '') = '' then comment else p_comment end,
       reviewer_name = case when coalesce(trim(p_reviewer_name), '') = '' then reviewer_name else p_reviewer_name end,
       updated_at = now()
-  where id = p_review_id
-  returning submission_id, startup_name, artifact_name
+  where fr.id = p_review_id
+  returning fr.submission_id, fr.startup_name, fr.artifact_name
   into v_submission_id, v_startup, v_artifact;
 
   if not found then
