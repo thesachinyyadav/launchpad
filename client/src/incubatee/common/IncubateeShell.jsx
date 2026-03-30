@@ -109,7 +109,14 @@ function IncubateeShell({
         </div>
       </header>
 
-      <main className="px-4 pb-28 pt-6 sm:px-6 lg:ml-72 lg:px-8 lg:pb-10">{children}</main>
+      <main className="px-4 pb-32 pt-6 sm:px-6 lg:ml-72 lg:px-8 lg:pb-14">{children}</main>
+
+      <footer className="hidden border-t border-slate-200 bg-white/85 px-4 py-4 text-xs text-slate-500 lg:ml-72 lg:block lg:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span>LaunchPad CICF Incubatee Workspace</span>
+          <span>Email-only notifications via Resend</span>
+        </div>
+      </footer>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-slate-200 bg-white/95 p-2 lg:hidden">
         {primaryNavigation.slice(0, 4).map((item) => (

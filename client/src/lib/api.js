@@ -1,9 +1,43 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api'
+const SESSION_KEY = 'lp-session'
+
+function getStoredSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) {
+      return null
+    }
+
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') {
+      return null
+    }
+
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function setStoredSession(session) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+function clearStoredSession() {
+  localStorage.removeItem(SESSION_KEY)
+  localStorage.removeItem('lp-active-role')
+}
+
+function getAuthToken() {
+  return getStoredSession()?.token || null
+}
 
 async function apiRequest(path, options = {}) {
   const url = `${API_BASE}${path}`
+  const token = getAuthToken()
   const headers = {
     'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   }
 
@@ -29,11 +63,66 @@ async function apiRequest(path, options = {}) {
 }
 
 function getActiveRole() {
-  return localStorage.getItem('lp-active-role') || 'admin'
+  const roleFromSession = getStoredSession()?.user?.role
+
+  if (roleFromSession) {
+    return roleFromSession
+  }
+
+  return localStorage.getItem('lp-active-role') || null
 }
 
 function setActiveRole(role) {
+  if (!role) {
+    return
+  }
+
+  const currentSession = getStoredSession()
+  if (currentSession) {
+    const updated = {
+      ...currentSession,
+      user: {
+        ...(currentSession.user || {}),
+        role,
+      },
+    }
+
+    setStoredSession(updated)
+  }
+
   localStorage.setItem('lp-active-role', role)
 }
 
-export { API_BASE, apiRequest, getActiveRole, setActiveRole }
+function saveAuthSession(authPayload) {
+  if (!authPayload || !authPayload.token || !authPayload.user) {
+    return
+  }
+
+  const session = {
+    token: authPayload.token,
+    user: authPayload.user,
+    redirectTo: authPayload.redirectTo || null,
+    loggedInAt: new Date().toISOString(),
+  }
+
+  setStoredSession(session)
+  setActiveRole(authPayload.user.role)
+}
+
+function getAuthSession() {
+  return getStoredSession()
+}
+
+function clearAuthSession() {
+  clearStoredSession()
+}
+
+export {
+  API_BASE,
+  apiRequest,
+  clearAuthSession,
+  getActiveRole,
+  getAuthSession,
+  saveAuthSession,
+  setActiveRole,
+}

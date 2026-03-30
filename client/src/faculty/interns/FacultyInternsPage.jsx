@@ -1,37 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import FacultyShell from '../common/FacultyShell'
-
-const previewModes = ['default', 'loading', 'empty', 'error']
-
-const initialInterns = [
-  {
-    id: 'fi-1',
-    name: 'Riya Nair',
-    startup: 'NeuroGrid Labs',
-    mentor: 'Dr. Sarah Vance',
-    attendance: 92,
-    score: 8.4,
-    status: 'On Track',
-  },
-  {
-    id: 'fi-2',
-    name: 'Harsh Patel',
-    startup: 'AgriPulse',
-    mentor: 'Marcus Chen',
-    attendance: 78,
-    score: 6.9,
-    status: 'Needs Attention',
-  },
-  {
-    id: 'fi-3',
-    name: 'Ananya Das',
-    startup: 'AstraFlow',
-    mentor: 'Elaine Park',
-    attendance: 97,
-    score: 9.1,
-    status: 'Completed',
-  },
-]
+import { apiRequest } from '../../lib/api'
 
 function statusTone(status) {
   if (status === 'On Track') {
@@ -46,29 +15,56 @@ function statusTone(status) {
 }
 
 function FacultyInternsPage() {
-  const [viewState, setViewState] = useState('default')
-  const [interns, setInterns] = useState(initialInterns)
+  const [items, setItems] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
   const [searchText, setSearchText] = useState('')
   const [toast, setToast] = useState('')
 
-  const visibleInterns = useMemo(() => {
-    const source = viewState === 'empty' ? [] : interns
+  const loadInterns = async () => {
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const response = await apiRequest('/faculty/interns')
+      setItems(response.items || [])
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to load intern records.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadInterns()
+  }, [])
+
+  const visibleItems = useMemo(() => {
     const lowered = searchText.trim().toLowerCase()
 
-    return source.filter(
-      (item) =>
+    return items.filter((item) => {
+      return (
         item.name.toLowerCase().includes(lowered) ||
-        item.startup.toLowerCase().includes(lowered),
-    )
-  }, [interns, searchText, viewState])
+        item.startup.toLowerCase().includes(lowered)
+      )
+    })
+  }, [items, searchText])
 
-  const setAttention = (internId, status) => {
-    setInterns((current) =>
-      current.map((item) => (item.id === internId ? { ...item, status } : item)),
-    )
+  const updateStatus = async (id, status) => {
+    try {
+      const response = await apiRequest(`/faculty/interns/${id}/status`, {
+        method: 'PATCH',
+        body: { status },
+      })
 
-    setToast(`Status changed to ${status}.`)
-    setTimeout(() => setToast(''), 1600)
+      const updated = response.item
+      setItems((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+      setToast(`Status changed to ${updated.status}.`)
+      setTimeout(() => setToast(''), 2000)
+    } catch (requestError) {
+      setToast(requestError.message || 'Unable to update intern status.')
+      setTimeout(() => setToast(''), 2000)
+    }
   }
 
   return (
@@ -80,116 +76,94 @@ function FacultyInternsPage() {
       headerAction={
         <button
           type="button"
+          onClick={loadInterns}
           className="lp-focus rounded-lg bg-lp-navy px-4 py-2 text-xs font-bold uppercase tracking-[0.1em] text-white"
         >
-          Export Evaluation
+          Refresh
         </button>
       }
     >
       <div className="space-y-6">
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Preview State
-              </span>
-              {previewModes.map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setViewState(mode)}
-                  className={`lp-focus rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] ${
-                    viewState === mode ? 'bg-lp-navy text-white' : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-
-            <input
-              type="search"
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              placeholder="Search intern or startup"
-              className="lp-focus h-10 w-full rounded-lg border border-slate-200 px-3 text-sm sm:w-80"
-            />
-          </div>
-        </section>
-
-        {viewState === 'error' ? (
+        {error ? (
           <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-            Unable to fetch intern evaluation records.
+            {error}
           </section>
         ) : null}
 
-        {viewState === 'loading' ? (
-          <div className="animate-pulse rounded-3xl bg-white p-8 shadow-sm">
-            <div className="h-6 w-44 rounded bg-slate-200" />
-            <div className="mt-4 h-14 rounded bg-slate-200" />
-            <div className="mt-3 h-14 rounded bg-slate-200" />
-          </div>
-        ) : (
-          <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
-            <h2 className="font-display text-xl font-extrabold text-lp-navy">Intern Evaluation Desk</h2>
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <input
+            type="search"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            placeholder="Search intern or startup"
+            className="lp-focus h-10 w-full rounded-lg border border-slate-200 px-3 text-sm"
+          />
+        </section>
 
-            {viewState === 'empty' ? (
-              <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                <p className="text-sm font-semibold text-slate-600">No intern records available.</p>
-              </div>
-            ) : (
-              <div className="mt-4 overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 text-sm">
-                  <thead>
-                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.09em] text-slate-500">
-                      <th className="pb-3 pr-3">Intern</th>
-                      <th className="pb-3 pr-3">Startup</th>
-                      <th className="pb-3 pr-3">Mentor</th>
-                      <th className="pb-3 pr-3">Attendance</th>
-                      <th className="pb-3 pr-3">Score</th>
-                      <th className="pb-3 pr-3">Status</th>
-                      <th className="pb-3">Actions</th>
+        <section className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+          <h2 className="font-display text-xl font-extrabold text-lp-navy">Intern Evaluation Desk</h2>
+
+          {isLoading ? (
+            <div className="mt-4 animate-pulse space-y-3">
+              <div className="h-14 rounded bg-slate-100" />
+              <div className="h-14 rounded bg-slate-100" />
+            </div>
+          ) : visibleItems.length ? (
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-200 text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-semibold uppercase tracking-[0.09em] text-slate-500">
+                    <th className="pb-3 pr-3">Intern</th>
+                    <th className="pb-3 pr-3">Startup</th>
+                    <th className="pb-3 pr-3">Mentor</th>
+                    <th className="pb-3 pr-3">Attendance</th>
+                    <th className="pb-3 pr-3">Score</th>
+                    <th className="pb-3 pr-3">Status</th>
+                    <th className="pb-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {visibleItems.map((item) => (
+                    <tr key={item.id}>
+                      <td className="py-4 pr-3 font-semibold text-lp-navy">{item.name}</td>
+                      <td className="py-4 pr-3 text-slate-600">{item.startup}</td>
+                      <td className="py-4 pr-3 text-slate-600">{item.mentor}</td>
+                      <td className="py-4 pr-3 text-slate-600">{item.attendance}%</td>
+                      <td className="py-4 pr-3 text-slate-600">{item.score}</td>
+                      <td className="py-4 pr-3">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="py-4">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => updateStatus(item.id, 'On Track')}
+                            className="lp-focus rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700"
+                          >
+                            On Track
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateStatus(item.id, 'Needs Attention')}
+                            className="lp-focus rounded-md bg-rose-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-rose-700"
+                          >
+                            Flag
+                          </button>
+                        </div>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {visibleInterns.map((item) => (
-                      <tr key={item.id}>
-                        <td className="py-4 pr-3 font-semibold text-lp-navy">{item.name}</td>
-                        <td className="py-4 pr-3 text-slate-600">{item.startup}</td>
-                        <td className="py-4 pr-3 text-slate-600">{item.mentor}</td>
-                        <td className="py-4 pr-3 text-slate-600">{item.attendance}%</td>
-                        <td className="py-4 pr-3 text-slate-600">{item.score}</td>
-                        <td className="py-4 pr-3">
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
-                            {item.status}
-                          </span>
-                        </td>
-                        <td className="py-4">
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setAttention(item.id, 'On Track')}
-                              className="lp-focus rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700"
-                            >
-                              On Track
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setAttention(item.id, 'Needs Attention')}
-                              className="lp-focus rounded-md bg-rose-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-rose-700"
-                            >
-                              Flag
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+              No intern records available.
+            </div>
+          )}
+        </section>
       </div>
 
       {toast ? (

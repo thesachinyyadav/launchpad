@@ -4,10 +4,13 @@ const {
   db,
   clone,
   createClaim,
+  createIncubateeMeetingRequest,
   createNotification,
+  getIncubateeFacultyDesk,
   getIncubateeBundle,
   queueSupportTicket,
   advanceSupportTicket,
+  updatePresentationUpload,
   updateIncubateeProfile,
   updateSubmissionStatus,
 } = require('../data/store')
@@ -119,7 +122,38 @@ router.get('/presentations', (req, res) => {
   })
 })
 
+router.patch('/presentations/upload', (req, res) => {
+  const { stage, fileKey, fileName } = req.body || {}
+  const presentations = updatePresentationUpload({ stage, fileKey, fileName })
+
+  if (!presentations) {
+    return res.status(400).json({
+      ok: false,
+      error: 'invalid_payload',
+      message: 'stage and fileKey are required.',
+    })
+  }
+
+  return res.json({
+    ok: true,
+    data: presentations,
+  })
+})
+
 router.post('/presentations/submit', async (req, res) => {
+  const activeStage = db.presentations.activeStage
+  const uploads = db.presentations.uploads[activeStage] || {}
+  const requiredFileKeys = Object.keys(uploads)
+  const hasMissingUploads = requiredFileKeys.some((key) => !uploads[key])
+
+  if (hasMissingUploads) {
+    return res.status(400).json({
+      ok: false,
+      error: 'missing_assets',
+      message: 'All required presentation files must be uploaded before submission.',
+    })
+  }
+
   db.presentations.status = 'Under Review'
   db.presentations.attemptNumber += 1
 
@@ -142,6 +176,48 @@ router.post('/presentations/submit', async (req, res) => {
   res.json({
     ok: true,
     data: clone(db.presentations),
+  })
+})
+
+router.get('/faculty', (req, res) => {
+  res.json({
+    ok: true,
+    data: getIncubateeFacultyDesk(),
+  })
+})
+
+router.post('/faculty/requests', async (req, res) => {
+  const { mentor, topic, date } = req.body || {}
+
+  if (!mentor || !topic || !date) {
+    return res.status(400).json({
+      ok: false,
+      error: 'invalid_payload',
+      message: 'mentor, topic, and date are required.',
+    })
+  }
+
+  const request = createIncubateeMeetingRequest({ mentor, topic, date })
+
+  createNotification({
+    title: 'Mentor Meeting Requested',
+    message: `${mentor} received a new meeting request from incubatee workspace.`,
+    source: 'incubatee',
+    priority: 'medium',
+    category: 'mention',
+    audienceRoles: ['faculty', 'admin'],
+  })
+
+  await dispatchRoleEmail({
+    emailType: 'Mentor Meeting Request',
+    audienceRoles: ['faculty', 'admin'],
+    subject: 'New Mentor Meeting Request',
+    message: `${mentor} was requested for: ${topic}`,
+  })
+
+  return res.json({
+    ok: true,
+    item: request,
   })
 })
 
@@ -274,7 +350,7 @@ router.post('/finance/claims', async (req, res) => {
   }
 
   const claim = createClaim({
-    startup: 'NeuroGrid Labs',
+    startup: db.incubateeProfile.startupName || 'Incubatee Startup',
     category,
     amount,
     reference,

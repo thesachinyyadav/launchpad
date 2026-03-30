@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import BrandLogo from '../components/BrandLogo'
-import { apiRequest, setActiveRole } from '../lib/api'
+import { apiRequest, saveAuthSession, setActiveRole } from '../lib/api'
 
 const features = [
   {
@@ -60,6 +60,7 @@ function LoginPage() {
         },
       })
 
+      saveAuthSession(response)
       setActiveRole(response.user.role)
       navigate(response.redirectTo)
     } catch (requestError) {
@@ -121,12 +122,6 @@ function LoginPage() {
             </header>
 
             <form onSubmit={onSubmit} className="mt-8 space-y-5" noValidate>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600">
-                <p className="font-semibold uppercase tracking-[0.1em] text-slate-500">Demo Accounts</p>
-                <p className="mt-1">admin@launchpadcicf.in, faculty@launchpadcicf.in, incubatee@launchpadcicf.in</p>
-                <p className="mt-1">Password: LaunchPad@123</p>
-              </div>
-
               <div>
                 <label htmlFor="email" className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
                   Email Address

@@ -1,67 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import IncubateeShell from '../common/IncubateeShell'
-
-const previewModes = ['default', 'loading', 'empty', 'error']
-
-const initialClaims = [
-  {
-    id: 'cl-1',
-    category: 'Intern Reimbursement',
-    amount: 'INR 28,400',
-    submittedAt: 'Mar 25, 2026',
-    status: 'In Review',
-    reference: 'EXP-2840',
-  },
-  {
-    id: 'cl-2',
-    category: 'Prototype Components',
-    amount: 'INR 1,12,000',
-    submittedAt: 'Mar 20, 2026',
-    status: 'Approved',
-    reference: 'HW-1102',
-  },
-  {
-    id: 'cl-3',
-    category: 'Cloud Credits Adjustment',
-    amount: 'INR 32,000',
-    submittedAt: 'Mar 18, 2026',
-    status: 'Settled',
-    reference: 'CC-309',
-  },
-]
-
-const payoutSchedule = [
-  {
-    id: 'ps-1',
-    date: 'Apr 02, 2026',
-    title: 'Intern stipend cycle - Week 1',
-    amount: 'INR 54,000',
-  },
-  {
-    id: 'ps-2',
-    date: 'Apr 06, 2026',
-    title: 'Prototype procurement disbursement',
-    amount: 'INR 80,000',
-  },
-]
-
-const budgetBands = [
-  {
-    id: 'bb-1',
-    name: 'R&D Budget',
-    used: 62,
-  },
-  {
-    id: 'bb-2',
-    name: 'Operations Budget',
-    used: 49,
-  },
-  {
-    id: 'bb-3',
-    name: 'Marketing Budget',
-    used: 71,
-  },
-]
+import { apiRequest } from '../../lib/api'
 
 function statusTone(status) {
   if (status === 'Approved' || status === 'Settled') {
@@ -75,70 +14,80 @@ function statusTone(status) {
   return 'bg-slate-100 text-slate-600'
 }
 
-function LoadingState() {
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, idx) => (
-          <div key={`finance-kpi-${idx}`} className="animate-pulse rounded-2xl bg-white p-5 shadow-sm">
-            <div className="h-3 w-24 rounded bg-slate-200" />
-            <div className="mt-3 h-8 w-16 rounded bg-slate-200" />
-          </div>
-        ))}
-      </div>
-      <div className="animate-pulse rounded-3xl bg-white p-8 shadow-sm">
-        <div className="h-6 w-48 rounded bg-slate-200" />
-        <div className="mt-4 h-14 rounded bg-slate-200" />
-      </div>
-    </div>
-  )
-}
-
 function IncubateeFinancePage() {
-  const [viewState, setViewState] = useState('default')
-  const [claims, setClaims] = useState(initialClaims)
+  const [finance, setFinance] = useState({ claims: [], payoutSchedule: [], budgetBands: [] })
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
   const [searchText, setSearchText] = useState('')
   const [isRaiseClaimOpen, setIsRaiseClaimOpen] = useState(false)
   const [newClaim, setNewClaim] = useState({ category: '', amount: '', reference: '' })
   const [toast, setToast] = useState('')
 
+  const loadFinance = async () => {
+    setIsLoading(true)
+    setError('')
+
+    try {
+      const response = await apiRequest('/incubatee/finance')
+      setFinance({
+        claims: response.claims || [],
+        payoutSchedule: response.payoutSchedule || [],
+        budgetBands: response.budgetBands || [],
+      })
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to load finance data.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadFinance()
+  }, [])
+
   const visibleClaims = useMemo(() => {
-    const source = viewState === 'empty' ? [] : claims
     const lowered = searchText.trim().toLowerCase()
 
-    return source.filter(
-      (item) =>
+    return finance.claims.filter((item) => {
+      return (
         item.category.toLowerCase().includes(lowered) ||
-        item.reference.toLowerCase().includes(lowered),
-    )
-  }, [claims, searchText, viewState])
+        item.reference.toLowerCase().includes(lowered)
+      )
+    })
+  }, [finance.claims, searchText])
 
-  const reviewCount = visibleClaims.filter((item) => item.status === 'In Review').length
-  const settledCount = visibleClaims.filter((item) => item.status === 'Settled').length
-
-  const raiseClaim = () => {
-    if (!newClaim.category || !newClaim.amount || !newClaim.reference) {
-      setToast('Fill all claim details before submitting.')
-      setTimeout(() => setToast(''), 1600)
+  const raiseClaim = async () => {
+    if (!newClaim.category || !newClaim.amount) {
+      setToast('Fill category and amount before submitting.')
+      setTimeout(() => setToast(''), 1800)
       return
     }
 
-    setClaims((current) => [
-      {
-        id: `cl-${Date.now()}`,
-        category: newClaim.category,
-        amount: newClaim.amount,
-        submittedAt: new Date().toLocaleDateString('en-IN'),
-        status: 'In Review',
-        reference: newClaim.reference,
-      },
-      ...current,
-    ])
+    try {
+      const response = await apiRequest('/incubatee/finance/claims', {
+        method: 'POST',
+        body: {
+          category: newClaim.category,
+          amount: newClaim.amount,
+          reference: newClaim.reference,
+        },
+      })
 
-    setNewClaim({ category: '', amount: '', reference: '' })
-    setIsRaiseClaimOpen(false)
-    setToast('Claim raised successfully.')
-    setTimeout(() => setToast(''), 1700)
+      if (response.item) {
+        setFinance((current) => ({
+          ...current,
+          claims: [response.item, ...current.claims],
+        }))
+      }
+
+      setNewClaim({ category: '', amount: '', reference: '' })
+      setIsRaiseClaimOpen(false)
+      setToast('Claim raised successfully.')
+      setTimeout(() => setToast(''), 1800)
+    } catch (requestError) {
+      setToast(requestError.message || 'Unable to raise claim.')
+      setTimeout(() => setToast(''), 1800)
+    }
   }
 
   return (
@@ -158,26 +107,14 @@ function IncubateeFinancePage() {
       }
     >
       <div className="space-y-6">
+        {error ? (
+          <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            {error}
+          </section>
+        ) : null}
+
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Preview State
-              </span>
-              {previewModes.map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setViewState(mode)}
-                  className={`lp-focus rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] ${
-                    viewState === mode ? 'bg-lp-navy text-white' : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-
             <input
               type="search"
               value={searchText}
@@ -185,112 +122,112 @@ function IncubateeFinancePage() {
               placeholder="Search by category or reference"
               className="lp-focus h-10 w-full rounded-lg border border-slate-200 px-3 text-sm sm:w-80"
             />
+            <button
+              type="button"
+              onClick={loadFinance}
+              className="lp-focus rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-slate-700"
+            >
+              Refresh
+            </button>
           </div>
         </section>
 
-        {viewState === 'error' ? (
-          <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-            Finance ledger failed to load. This state is intentionally provided for UI QA.
-          </section>
-        ) : null}
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <article className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+            <h2 className="font-display text-xl font-extrabold text-lp-navy">Claims Ledger</h2>
 
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <article className="rounded-2xl bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.11em] text-slate-500">Claims Total</p>
-            <p className="mt-3 text-3xl font-black text-lp-navy">{viewState === 'empty' ? 0 : visibleClaims.length}</p>
+            {isLoading ? (
+              <div className="mt-4 animate-pulse space-y-3">
+                <div className="h-14 rounded bg-slate-100" />
+                <div className="h-14 rounded bg-slate-100" />
+              </div>
+            ) : visibleClaims.length ? (
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead>
+                    <tr className="text-left text-xs font-semibold uppercase tracking-[0.09em] text-slate-500">
+                      <th className="pb-3 pr-3">Category</th>
+                      <th className="pb-3 pr-3">Amount</th>
+                      <th className="pb-3 pr-3">Submitted</th>
+                      <th className="pb-3 pr-3">Reference</th>
+                      <th className="pb-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {visibleClaims.map((item) => (
+                      <tr key={item.id}>
+                        <td className="py-4 pr-3 font-semibold text-lp-navy">{item.category}</td>
+                        <td className="py-4 pr-3 text-slate-600">{item.amount}</td>
+                        <td className="py-4 pr-3 text-slate-600">{item.submittedAt}</td>
+                        <td className="py-4 pr-3 text-slate-600">{item.reference}</td>
+                        <td className="py-4">
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
+                            {item.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                No claims submitted yet.
+              </div>
+            )}
           </article>
-          <article className="rounded-2xl bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.11em] text-slate-500">In Review</p>
-            <p className="mt-3 text-3xl font-black text-lp-navy">{viewState === 'empty' ? 0 : reviewCount}</p>
-          </article>
-          <article className="rounded-2xl bg-white p-5 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.11em] text-slate-500">Settled</p>
-            <p className="mt-3 text-3xl font-black text-lp-navy">{viewState === 'empty' ? 0 : settledCount}</p>
+
+          <article className="space-y-6">
+            <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+              <h2 className="font-display text-xl font-extrabold text-lp-navy">Upcoming Disbursements</h2>
+              {isLoading ? (
+                <div className="mt-4 h-14 animate-pulse rounded bg-slate-100" />
+              ) : finance.payoutSchedule.length ? (
+                <div className="mt-4 space-y-3">
+                  {finance.payoutSchedule.map((item) => (
+                    <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.09em] text-slate-500">{item.date}</p>
+                      <p className="mt-1 text-sm font-semibold text-lp-navy">{item.title}</p>
+                      <p className="mt-2 text-sm text-slate-600">{item.amount}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                  No scheduled disbursements.
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+              <h2 className="font-display text-xl font-extrabold text-lp-navy">Budget Bands</h2>
+              {isLoading ? (
+                <div className="mt-4 h-14 animate-pulse rounded bg-slate-100" />
+              ) : finance.budgetBands.length ? (
+                <div className="mt-4 space-y-3">
+                  {finance.budgetBands.map((item) => (
+                    <div key={item.id}>
+                      <div className="mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                        <span>{item.name}</span>
+                        <span>{item.used}% used</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-slate-100">
+                        <div
+                          className="h-2 rounded-full bg-gradient-to-r from-lp-gold to-[#f0cf76]"
+                          style={{ width: `${item.used}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
+                  No budget data available.
+                </div>
+              )}
+            </div>
           </article>
         </section>
-
-        {viewState === 'loading' ? (
-          <LoadingState />
-        ) : (
-          <>
-            <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-              <article className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
-                <h2 className="font-display text-xl font-extrabold text-lp-navy">Claims Ledger</h2>
-
-                {viewState === 'empty' ? (
-                  <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                    <p className="text-sm font-semibold text-slate-600">No claims submitted yet.</p>
-                    <p className="mt-2 text-sm text-slate-500">Use Raise Claim to start reimbursement workflow.</p>
-                  </div>
-                ) : (
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                      <thead>
-                        <tr className="text-left text-xs font-semibold uppercase tracking-[0.09em] text-slate-500">
-                          <th className="pb-3 pr-3">Category</th>
-                          <th className="pb-3 pr-3">Amount</th>
-                          <th className="pb-3 pr-3">Submitted</th>
-                          <th className="pb-3 pr-3">Reference</th>
-                          <th className="pb-3">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {visibleClaims.map((item) => (
-                          <tr key={item.id}>
-                            <td className="py-4 pr-3 font-semibold text-lp-navy">{item.category}</td>
-                            <td className="py-4 pr-3 text-slate-600">{item.amount}</td>
-                            <td className="py-4 pr-3 text-slate-600">{item.submittedAt}</td>
-                            <td className="py-4 pr-3 text-slate-600">{item.reference}</td>
-                            <td className="py-4">
-                              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone(item.status)}`}>
-                                {item.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </article>
-
-              <article className="space-y-6">
-                <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
-                  <h2 className="font-display text-xl font-extrabold text-lp-navy">Upcoming Disbursements</h2>
-                  <div className="mt-4 space-y-3">
-                    {(viewState === 'empty' ? [] : payoutSchedule).map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.09em] text-slate-500">{item.date}</p>
-                        <p className="mt-1 text-sm font-semibold text-lp-navy">{item.title}</p>
-                        <p className="mt-2 text-sm text-slate-600">{item.amount}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
-                  <h2 className="font-display text-xl font-extrabold text-lp-navy">Budget Bands</h2>
-                  <div className="mt-4 space-y-3">
-                    {(viewState === 'empty' ? [] : budgetBands).map((item) => (
-                      <div key={item.id}>
-                        <div className="mb-1 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
-                          <span>{item.name}</span>
-                          <span>{item.used}% used</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-slate-100">
-                          <div
-                            className="h-2 rounded-full bg-gradient-to-r from-lp-gold to-[#f0cf76]"
-                            style={{ width: `${item.used}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </article>
-            </section>
-          </>
-        )}
       </div>
 
       {isRaiseClaimOpen ? (
@@ -300,26 +237,20 @@ function IncubateeFinancePage() {
             <div className="mt-4 grid grid-cols-1 gap-3">
               <input
                 value={newClaim.category}
-                onChange={(event) =>
-                  setNewClaim((current) => ({ ...current, category: event.target.value }))
-                }
+                onChange={(event) => setNewClaim((current) => ({ ...current, category: event.target.value }))}
                 placeholder="Category"
                 className="lp-focus h-10 rounded-lg border border-slate-200 px-3 text-sm"
               />
               <input
                 value={newClaim.amount}
-                onChange={(event) =>
-                  setNewClaim((current) => ({ ...current, amount: event.target.value }))
-                }
+                onChange={(event) => setNewClaim((current) => ({ ...current, amount: event.target.value }))}
                 placeholder="Amount"
                 className="lp-focus h-10 rounded-lg border border-slate-200 px-3 text-sm"
               />
               <input
                 value={newClaim.reference}
-                onChange={(event) =>
-                  setNewClaim((current) => ({ ...current, reference: event.target.value }))
-                }
-                placeholder="Reference"
+                onChange={(event) => setNewClaim((current) => ({ ...current, reference: event.target.value }))}
+                placeholder="Reference (optional)"
                 className="lp-focus h-10 rounded-lg border border-slate-200 px-3 text-sm"
               />
             </div>

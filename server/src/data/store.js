@@ -57,21 +57,21 @@ const db = {
   users: [
     {
       id: 'u-admin-1',
-      name: 'CICF Operations Admin',
+      name: 'Admin User',
       email: 'admin@launchpadcicf.in',
       role: 'admin',
       password: 'LaunchPad@123',
     },
     {
       id: 'u-faculty-1',
-      name: 'Dr. Sarah Vance',
+      name: 'Faculty User',
       email: 'faculty@launchpadcicf.in',
       role: 'faculty',
       password: 'LaunchPad@123',
     },
     {
       id: 'u-incubatee-1',
-      name: 'Aanya Sen',
+      name: 'Incubatee User',
       email: 'incubatee@launchpadcicf.in',
       role: 'incubatee',
       password: 'LaunchPad@123',
@@ -83,12 +83,12 @@ const db = {
 
   settingsByRole: {
     admin: {
-      fullName: 'CICF Operations Admin',
-      displayName: 'Admin Ops',
+      fullName: 'Admin User',
+      displayName: 'Admin',
       email: 'admin@launchpadcicf.in',
-      phone: '+91 90000 11111',
+      phone: '',
       organization: 'LaunchPad CICF',
-      twoFactor: true,
+      twoFactor: false,
       notifyEmail: true,
       notifyInApp: false,
       notifyDeadline: true,
@@ -101,12 +101,12 @@ const db = {
       highContrast: false,
     },
     faculty: {
-      fullName: 'Dr. Sarah Vance',
-      displayName: 'Dr. Vance',
+      fullName: 'Faculty User',
+      displayName: 'Faculty',
       email: 'faculty@launchpadcicf.in',
-      phone: '+91 90000 22222',
+      phone: '',
       organization: 'LaunchPad CICF Faculty',
-      twoFactor: true,
+      twoFactor: false,
       notifyEmail: true,
       notifyInApp: false,
       notifyDeadline: true,
@@ -119,11 +119,11 @@ const db = {
       highContrast: false,
     },
     incubatee: {
-      fullName: 'Aanya Sen',
-      displayName: 'A. Sen',
+      fullName: 'Incubatee User',
+      displayName: 'Incubatee',
       email: 'incubatee@launchpadcicf.in',
-      phone: '+91 90000 33333',
-      organization: 'NeuroGrid Labs',
+      phone: '',
+      organization: '',
       twoFactor: false,
       notifyEmail: true,
       notifyInApp: false,
@@ -139,154 +139,31 @@ const db = {
   },
 
   sessionsByRole: {
-    admin: [
-      {
-        id: 'as-1',
-        device: 'Windows Workstation',
-        location: 'Bangalore, India',
-        lastActive: 'Just now',
-        current: true,
-      },
-      {
-        id: 'as-2',
-        device: 'MacBook Air',
-        location: 'Remote',
-        lastActive: '1 hour ago',
-        current: false,
-      },
-    ],
-    faculty: [
-      {
-        id: 'fs-1',
-        device: 'MacBook Pro 16"',
-        location: 'Chennai, India',
-        lastActive: 'Just now',
-        current: true,
-      },
-      {
-        id: 'fs-2',
-        device: 'iPad Pro',
-        location: 'Chennai, India',
-        lastActive: 'Yesterday',
-        current: false,
-      },
-    ],
-    incubatee: [
-      {
-        id: 'is-1',
-        device: 'MacBook Pro 14"',
-        location: 'Bangalore, India',
-        lastActive: 'Just now',
-        current: true,
-      },
-      {
-        id: 'is-2',
-        device: 'iPhone 15',
-        location: 'Bangalore, India',
-        lastActive: '2 hours ago',
-        current: false,
-      },
-    ],
+    admin: [],
+    faculty: [],
+    incubatee: [],
   },
 
-  notifications: [
-    {
-      id: 'n-1',
-      title: 'Review Window Closing Soon',
-      message: 'Two Stage-2 submissions must be finalized within 48 hours.',
-      source: 'system',
-      priority: 'high',
-      category: 'system',
-      createdAt: isoHoursAgo(2),
-      audienceRoles: ['admin', 'faculty'],
-      readByRole: { admin: false, faculty: false, incubatee: true },
-      dismissedByRole: { admin: false, faculty: false, incubatee: false },
-    },
-    {
-      id: 'n-2',
-      title: 'Submission Rework Requested',
-      message: 'Quarterly Progress PPT needs projection split updates.',
-      source: 'faculty',
-      priority: 'medium',
-      category: 'update',
-      createdAt: isoHoursAgo(5),
-      audienceRoles: ['incubatee', 'admin'],
-      readByRole: { admin: false, faculty: true, incubatee: false },
-      dismissedByRole: { admin: false, faculty: false, incubatee: false },
-    },
-    {
-      id: 'n-3',
-      title: 'Claim Decision Posted',
-      message: 'Prototype components claim has been approved by admin finance.',
-      source: 'admin',
-      priority: 'low',
-      category: 'update',
-      createdAt: isoHoursAgo(18),
-      audienceRoles: ['incubatee', 'faculty'],
-      readByRole: { admin: true, faculty: false, incubatee: false },
-      dismissedByRole: { admin: false, faculty: false, incubatee: false },
-    },
-    {
-      id: 'n-4',
-      title: 'System Maintenance Schedule',
-      message: 'Platform maintenance scheduled Sunday 02:00 AM to 03:00 AM.',
-      source: 'system',
-      priority: 'low',
-      category: 'system',
-      createdAt: isoHoursAgo(42),
-      audienceRoles: ['admin', 'faculty', 'incubatee'],
-      readByRole: { admin: true, faculty: true, incubatee: true },
-      dismissedByRole: { admin: false, faculty: false, incubatee: false },
-    },
-  ],
+  notifications: [],
 
-  emailLog: [
-    {
-      id: 'dl-1',
-      emailType: 'Review Reminder',
-      audienceRole: 'faculty',
-      recipients: 18,
-      provider: 'resend',
-      result: 'Delivered',
-      sentAt: new Date(isoHoursAgo(1)).toLocaleString('en-IN'),
-    },
-    {
-      id: 'dl-2',
-      emailType: 'Submission Received',
-      audienceRole: 'admin',
-      recipients: 4,
-      provider: 'resend',
-      result: 'Delivered',
-      sentAt: new Date(isoHoursAgo(3)).toLocaleString('en-IN'),
-    },
-  ],
+  emailLog: [],
 
   incubateeProfile: {
-    startupName: 'NeuroGrid Labs',
-    cicfId: 'CICF-2024-118',
-    founderName: 'Aanya Sen',
+    startupName: '',
+    cicfId: '',
+    founderName: '',
     founderEmail: 'incubatee@launchpadcicf.in',
-    phone: '+91 90000 33333',
-    domain: 'Predictive Diagnostics',
-    headquarters: 'Bangalore, India',
-    overview:
-      'AI-driven diagnostics platform focused on early disease pattern detection for clinical partners.',
-    teamMembers: [
-      { id: 'tm-1', name: 'Aanya Sen', role: 'Founder and CEO', email: 'aanya@neurogrid.ai' },
-      { id: 'tm-2', name: 'Rohit Nair', role: 'CTO', email: 'rohit@neurogrid.ai' },
-      { id: 'tm-3', name: 'Zara Khan', role: 'Product Lead', email: 'zara@neurogrid.ai' },
-    ],
+    phone: '',
+    domain: '',
+    headquarters: '',
+    overview: '',
+    teamMembers: [],
   },
 
   incubateeDashboard: {
-    stageLabel: 'Beta Testing',
-    stageProgressPercent: 75,
-    stats: [
-      { id: 'st-1', label: 'Pending Submissions', value: 3 },
-      { id: 'st-2', label: 'Intern Requests', value: 8 },
-      { id: 'st-3', label: 'Claims In Review', value: 2 },
-      { id: 'st-4', label: 'Documents Available', value: 14 },
-    ],
+    stageLabel: 'Not Started',
+    stageProgressPercent: 0,
+    stats: [],
     quickActions: [
       'Submit Presentation',
       'Upload Progress PPT',
@@ -296,470 +173,99 @@ const db = {
     ],
   },
 
-  projects: [
-    {
-      id: 'pj-1',
-      name: 'Predictive Diagnostics Engine',
-      owner: 'Felix Alpha Team',
-      stage: 'Beta Testing',
-      health: 'Healthy',
-      budgetUsed: 72,
-      progress: 68,
-      nextMilestone: 'Clinical pilot batch-2',
-    },
-    {
-      id: 'pj-2',
-      name: 'Low-Power Device Firmware',
-      owner: 'Embedded Pod',
-      stage: 'Phase Alpha',
-      health: 'Watch',
-      budgetUsed: 54,
-      progress: 49,
-      nextMilestone: 'Integration test report',
-    },
-    {
-      id: 'pj-3',
-      name: 'B2B Market Expansion Program',
-      owner: 'Growth Pod',
-      stage: 'Market Ready',
-      health: 'At Risk',
-      budgetUsed: 85,
-      progress: 58,
-      nextMilestone: 'Channel partner onboarding',
-    },
-  ],
+  projects: [],
 
-  submissions: [
-    {
-      id: 'sb-1',
-      startup: 'NeuroGrid Labs',
-      asset: 'Quarterly Progress PPT',
-      stage: 'Stage 2',
-      owner: 'Felix Alpha Team',
-      dueDate: 'Apr 04, 2026',
-      status: 'Rework Requested',
-      attempt: 3,
-      feedback: 'Add detailed revenue segment split in slides 14 and 15.',
-    },
-    {
-      id: 'sb-2',
-      startup: 'NeuroGrid Labs',
-      asset: 'Financial Briefing',
-      stage: 'Stage 2',
-      owner: 'Finance Pod',
-      dueDate: 'Apr 06, 2026',
-      status: 'Submitted',
-      attempt: 2,
-      feedback: '',
-    },
-    {
-      id: 'sb-3',
-      startup: 'NeuroGrid Labs',
-      asset: 'Internship Compliance Pack',
-      stage: 'Operations',
-      owner: 'Ops Pod',
-      dueDate: 'Apr 09, 2026',
-      status: 'Draft',
-      attempt: 1,
-      feedback: '',
-    },
-    {
-      id: 'sb-4',
-      startup: 'NeuroGrid Labs',
-      asset: 'Milestone Evidence Log',
-      stage: 'Stage 3',
-      owner: 'Engineering Pod',
-      dueDate: 'Apr 11, 2026',
-      status: 'Approved',
-      attempt: 2,
-      feedback: 'Well structured evidence references.',
-    },
-  ],
+  submissions: [],
 
-  facultyReviews: [
-    {
-      id: 'rv-1',
-      submissionId: 'sb-1',
-      startup: 'NeuroGrid Labs',
-      artifact: 'Quarterly Progress PPT',
-      stage: 'Stage 2',
-      submittedAt: 'Mar 29, 2026',
-      status: 'Pending',
-      reviewer: 'Dr. Sarah Vance',
-      comment: '',
-    },
-    {
-      id: 'rv-2',
-      submissionId: 'sb-2',
-      startup: 'AgriPulse',
-      artifact: 'Financial Readiness Brief',
-      stage: 'Stage 2',
-      submittedAt: 'Mar 28, 2026',
-      status: 'Pending',
-      reviewer: 'Marcus Chen',
-      comment: '',
-    },
-    {
-      id: 'rv-3',
-      submissionId: 'sb-3',
-      startup: 'AstraFlow',
-      artifact: 'Market Validation Deck',
-      stage: 'Stage 3',
-      submittedAt: 'Mar 26, 2026',
-      status: 'Rework Requested',
-      reviewer: 'Dr. Sarah Vance',
-      comment: 'Need stronger validation evidence by segment.',
-    },
-  ],
+  facultyReviews: [],
 
   presentations: {
     activeStage: 'stage2',
-    status: 'Rework Requested',
-    attemptNumber: 2,
+    status: 'Draft',
+    attemptNumber: 0,
     uploads: {
       stage2: {
         boardDeck: null,
-        rubricReadiness: 'Rubric_Readiness_v2.xlsx',
-        financialBriefing: 'Financial_Briefing_Q2.xlsx',
+        rubricReadiness: null,
+        financialBriefing: null,
       },
     },
   },
 
   progress: {
-    activeQuarter: 'Q3',
+    activeQuarter: 'Q1',
     records: {
       Q1: {
-        submissionId: '#ST-2024-Q1-02',
-        status: 'Approved',
-        submittedAt: 'Mar 08, 2026 10:15 AM',
-        reviewer: 'Dr. Sarah Vance',
-        fileName: 'Q1_Progress_StatureElite.pptx',
+        submissionId: '#Q1-DRAFT',
+        status: 'Draft',
+        submittedAt: '',
+        reviewer: '',
+        fileName: null,
       },
       Q2: {
-        submissionId: '#ST-2024-Q2-05',
-        status: 'Approved',
-        submittedAt: 'Jun 14, 2026 02:22 PM',
-        reviewer: 'Dr. Sarah Vance',
-        fileName: 'Q2_Progress_StatureElite.pptx',
+        submissionId: '#Q2-DRAFT',
+        status: 'Draft',
+        submittedAt: '',
+        reviewer: '',
+        fileName: null,
       },
       Q3: {
-        submissionId: '#ST-2024-Q3-08',
-        status: 'Rework Requested',
-        submittedAt: 'Aug 24, 2026 11:42 AM',
-        reviewer: 'Dr. Sarah Vance',
-        fileName: 'Q3_Progress_Report_StatureElite.pptx',
+        submissionId: '#Q3-DRAFT',
+        status: 'Draft',
+        submittedAt: '',
+        reviewer: '',
+        fileName: null,
       },
       Q4: {
-        submissionId: '#ST-2024-Q4-DRAFT',
+        submissionId: '#Q4-DRAFT',
         status: 'Draft',
-        submittedAt: 'Not submitted',
-        reviewer: 'Pending assignment',
+        submittedAt: '',
+        reviewer: '',
         fileName: null,
       },
     },
   },
 
   internshipData: {
-    openings: [
-      {
-        id: 'op-1',
-        role: 'AI Product Intern',
-        department: 'Product',
-        duration: '16 weeks',
-        durationWeeks: 16,
-        stipend: 'INR 18,000 / month',
-        status: 'Open',
-        applicants: 34,
-        createdAt: '2026-03-24',
-      },
-      {
-        id: 'op-2',
-        role: 'Embedded Systems Intern',
-        department: 'Engineering',
-        duration: '12 weeks',
-        durationWeeks: 12,
-        stipend: 'INR 22,000 / month',
-        status: 'Open',
-        applicants: 19,
-        createdAt: '2026-03-19',
-      },
-      {
-        id: 'op-3',
-        role: 'Growth Research Intern',
-        department: 'Growth',
-        duration: '10 weeks',
-        durationWeeks: 10,
-        stipend: 'INR 15,000 / month',
-        status: 'Draft',
-        applicants: 0,
-        createdAt: '2026-03-27',
-      },
-    ],
-    interns: [
-      {
-        id: 'in-1',
-        name: 'Riya Nair',
-        university: 'IIT Madras',
-        startup: 'NeuroGrid Labs',
-        mentor: 'Dr. Sarah Vance',
-        startDate: 'Apr 02, 2026',
-        endDate: 'Jul 22, 2026',
-        progress: 62,
-        attendance: 92,
-        score: 8.4,
-        status: 'On Track',
-      },
-      {
-        id: 'in-2',
-        name: 'Harsh Patel',
-        university: 'BITS Pilani',
-        startup: 'AgriPulse',
-        mentor: 'Marcus Chen',
-        startDate: 'Mar 17, 2026',
-        endDate: 'Jun 15, 2026',
-        progress: 43,
-        attendance: 78,
-        score: 6.9,
-        status: 'Needs Attention',
-      },
-      {
-        id: 'in-3',
-        name: 'Ananya Das',
-        university: 'NIT Trichy',
-        startup: 'AstraFlow',
-        mentor: 'Elaine Park',
-        startDate: 'Jan 08, 2026',
-        endDate: 'Apr 05, 2026',
-        progress: 100,
-        attendance: 97,
-        score: 9.1,
-        status: 'Completed',
-      },
-    ],
+    openings: [],
+    interns: [],
     pipeline: {
-      Applied: [
-        { id: 'ap-1', name: 'Krish Verma', role: 'AI Product Intern' },
-        { id: 'ap-2', name: 'Farah Khan', role: 'Embedded Systems Intern' },
-      ],
-      Screening: [{ id: 'sc-1', name: 'Noor Ali', role: 'AI Product Intern' }],
-      Interview: [{ id: 'iv-1', name: 'Priya Menon', role: 'AI Product Intern' }],
-      Offer: [{ id: 'of-1', name: 'Kabir Shah', role: 'Embedded Systems Intern' }],
-      Joined: [{ id: 'jd-1', name: 'Meera Jain', role: 'AI Product Intern' }],
+      Applied: [],
+      Screening: [],
+      Interview: [],
+      Offer: [],
+      Joined: [],
     },
-    mentorAssignments: [
-      { id: 'ma-1', internName: 'Riya Nair', mentor: 'Dr. Sarah Vance', capacity: '4 / 6' },
-      { id: 'ma-2', internName: 'Harsh Patel', mentor: 'Marcus Chen', capacity: '3 / 5' },
-      { id: 'ma-3', internName: 'Ananya Das', mentor: 'Elaine Park', capacity: '2 / 4' },
-    ],
-    complianceChecklist: [
-      { id: 'c1', label: 'Offer letter', complete: true },
-      { id: 'c2', label: 'NDA', complete: true },
-      { id: 'c3', label: 'Internship agreement', complete: true },
-      { id: 'c4', label: 'Attendance policy acknowledgement', complete: false },
-      { id: 'c5', label: 'Monthly report submitted', complete: false },
-    ],
+    mentorAssignments: [],
+    complianceChecklist: [],
   },
 
-  claims: [
-    {
-      id: 'cl-1',
-      startup: 'NeuroGrid Labs',
-      category: 'Intern Reimbursement',
-      amount: 'INR 28,400',
-      submittedAt: 'Mar 25, 2026',
-      status: 'In Review',
-      reference: 'EXP-2840',
-    },
-    {
-      id: 'cl-2',
-      startup: 'NeuroGrid Labs',
-      category: 'Prototype Components',
-      amount: 'INR 1,12,000',
-      submittedAt: 'Mar 20, 2026',
-      status: 'Approved',
-      reference: 'HW-1102',
-    },
-    {
-      id: 'cl-3',
-      startup: 'NeuroGrid Labs',
-      category: 'Cloud Credits Adjustment',
-      amount: 'INR 32,000',
-      submittedAt: 'Mar 18, 2026',
-      status: 'Settled',
-      reference: 'CC-309',
-    },
-  ],
+  claims: [],
 
-  payoutSchedule: [
-    {
-      id: 'ps-1',
-      date: 'Apr 02, 2026',
-      title: 'Intern stipend cycle - Week 1',
-      amount: 'INR 54,000',
-    },
-    {
-      id: 'ps-2',
-      date: 'Apr 06, 2026',
-      title: 'Prototype procurement disbursement',
-      amount: 'INR 80,000',
-    },
-  ],
+  payoutSchedule: [],
 
-  budgetBands: [
-    { id: 'bb-1', name: 'R&D Budget', used: 62 },
-    { id: 'bb-2', name: 'Operations Budget', used: 49 },
-    { id: 'bb-3', name: 'Marketing Budget', used: 71 },
-  ],
+  budgetBands: [],
 
-  supportTickets: [
-    {
-      id: 'tk-1',
-      title: 'Unable to upload large PPT file',
-      category: 'Submissions',
-      priority: 'High',
-      stage: 'Open',
-      updatedAt: 'Mar 30, 2026 10:18 AM',
-    },
-    {
-      id: 'tk-2',
-      title: 'Intern attendance export mismatch',
-      category: 'Interns',
-      priority: 'Medium',
-      stage: 'In Progress',
-      updatedAt: 'Mar 29, 2026 04:22 PM',
-    },
-    {
-      id: 'tk-3',
-      title: 'Claim settlement receipt not downloadable',
-      category: 'Finance',
-      priority: 'Low',
-      stage: 'Resolved',
-      updatedAt: 'Mar 27, 2026 12:01 PM',
-    },
-  ],
+  supportTickets: [],
 
-  supportKnowledge: [
-    {
-      id: 'ka-1',
-      title: 'How to submit rework version for progress PPT',
-      tag: 'Submissions',
-    },
-    {
-      id: 'ka-2',
-      title: 'Mentor reassignment workflow for active interns',
-      tag: 'Interns',
-    },
-    {
-      id: 'ka-3',
-      title: 'Finance claim references and settlement timeline',
-      tag: 'Finance',
-    },
-  ],
+  supportKnowledge: [],
 
   mentorship: {
-    mentees: [
-      {
-        id: 'm-1',
-        startup: 'NeuroGrid Labs',
-        founder: 'Aanya Sen',
-        focus: 'Financial projection clarity',
-        progress: 72,
-        nextSession: 'Apr 02, 2026',
-      },
-      {
-        id: 'm-2',
-        startup: 'AgriPulse',
-        founder: 'Rahul Menon',
-        focus: 'Pilot conversion playbook',
-        progress: 56,
-        nextSession: 'Apr 03, 2026',
-      },
-      {
-        id: 'm-3',
-        startup: 'AstraFlow',
-        founder: 'Ira Jain',
-        focus: 'Go-to-market experiment quality',
-        progress: 64,
-        nextSession: 'Apr 06, 2026',
-      },
-    ],
-    logs: [
-      {
-        id: 'sl-1',
-        startup: 'NeuroGrid Labs',
-        title: 'Projection assumptions walkthrough',
-        date: 'Mar 29, 2026',
-        action: 'Upload revised CAC model by Apr 01',
-      },
-      {
-        id: 'sl-2',
-        startup: 'AgriPulse',
-        title: 'Pilot funnel diagnostics',
-        date: 'Mar 27, 2026',
-        action: 'Run two pricing tests with SME cohort',
-      },
-    ],
+    mentees: [],
+    logs: [],
   },
 
-  adminIncubatees: [
-    {
-      id: 'ai-1',
-      startup: 'NeuroGrid Labs',
-      founder: 'Aanya Sen',
-      stage: 'Beta Testing',
-      compliance: 'Good',
-      status: 'Active',
-    },
-    {
-      id: 'ai-2',
-      startup: 'AgriPulse',
-      founder: 'Rahul Menon',
-      stage: 'Phase Alpha',
-      compliance: 'Watch',
-      status: 'Active',
-    },
-    {
-      id: 'ai-3',
-      startup: 'AstraFlow',
-      founder: 'Ira Jain',
-      stage: 'Market Ready',
-      compliance: 'Good',
-      status: 'Graduating',
-    },
-  ],
+  adminIncubatees: [],
 
-  facultyDirectory: [
-    {
-      id: 'af-1',
-      name: 'Dr. Sarah Vance',
-      role: 'Lead Mentor',
-      specialization: 'Venture strategy',
-      activeReviews: 5,
-      capacity: 7,
-    },
-    {
-      id: 'af-2',
-      name: 'Marcus Chen',
-      role: 'Venture Partner',
-      specialization: 'Financial models',
-      activeReviews: 4,
-      capacity: 5,
-    },
-    {
-      id: 'af-3',
-      name: 'Elaine Park',
-      role: 'Innovation Advisor',
-      specialization: 'Pilot operations',
-      activeReviews: 2,
-      capacity: 6,
-    },
-  ],
+  facultyDirectory: [],
 
-  systemTemplates: [
-    { id: 'tp-1', name: 'Review Reminder', audience: 'Faculty', status: 'Active' },
-    { id: 'tp-2', name: 'Submission Received', audience: 'Incubatee', status: 'Active' },
-    { id: 'tp-3', name: 'Claim Decision Update', audience: 'Incubatee', status: 'Draft' },
-  ],
+  facultySessions: [],
+
+  incubateeMeetingRequests: [],
+
+  incubateeFeedbackTimeline: [],
+
+  systemTemplates: [],
 }
 
 function findUserByEmail(email) {
@@ -1051,6 +557,39 @@ function getIncubateeBundle() {
   }
 }
 
+function getIncubateeFacultyDesk() {
+  const facultyMembers = db.facultyDirectory.map((item) => {
+    const openSlots = Math.max(0, Number(item.capacity || 0) - Number(item.activeReviews || 0))
+
+    return {
+      id: item.id,
+      name: item.name,
+      role: item.role,
+      expertise: item.specialization,
+      availability: `Open Slots: ${openSlots}`,
+    }
+  })
+
+  return {
+    facultyMembers: clone(facultyMembers),
+    meetingRequests: clone(db.incubateeMeetingRequests),
+    feedbackTimeline: clone(db.incubateeFeedbackTimeline),
+  }
+}
+
+function createIncubateeMeetingRequest(payload) {
+  const record = {
+    id: `mr-${randomUUID().slice(0, 8)}`,
+    mentor: payload.mentor,
+    topic: payload.topic,
+    date: payload.date,
+    status: 'Pending',
+  }
+
+  db.incubateeMeetingRequests.unshift(record)
+  return clone(record)
+}
+
 function updateIncubateeProfile(patch) {
   const mutable = [
     'startupName',
@@ -1100,20 +639,7 @@ function getFacultyBundle() {
   return {
     dashboard: {
       reviewQueue: clone(db.facultyReviews),
-      sessions: [
-        {
-          id: 's-1',
-          startup: 'NeuroGrid Labs',
-          topic: 'Projection assumptions review',
-          time: '11:00 AM - 11:45 AM',
-        },
-        {
-          id: 's-2',
-          startup: 'AgriPulse',
-          topic: 'Pilot conversion strategy',
-          time: '02:30 PM - 03:15 PM',
-        },
-      ],
+      sessions: clone(db.facultySessions),
     },
     reviews: clone(db.facultyReviews),
     mentorship: clone(db.mentorship),
@@ -1266,7 +792,7 @@ function advanceSupportTicket(ticketId) {
 function createClaim(payload) {
   const record = {
     id: `cl-${randomUUID().slice(0, 8)}`,
-    startup: payload.startup || 'NeuroGrid Labs',
+    startup: payload.startup || db.incubateeProfile.startupName || 'Incubatee Startup',
     category: payload.category,
     amount: payload.amount,
     submittedAt: new Date().toLocaleDateString('en-IN'),
@@ -1276,6 +802,19 @@ function createClaim(payload) {
 
   db.claims.unshift(record)
   return clone(record)
+}
+
+function updatePresentationUpload({ stage, fileKey, fileName }) {
+  if (!stage || !fileKey) {
+    return null
+  }
+
+  if (!db.presentations.uploads[stage]) {
+    db.presentations.uploads[stage] = {}
+  }
+
+  db.presentations.uploads[stage][fileKey] = fileName || null
+  return clone(db.presentations)
 }
 
 module.exports = {
@@ -1303,6 +842,8 @@ module.exports = {
   revokeSessionByRole,
   signOutOtherSessions,
   getIncubateeBundle,
+  getIncubateeFacultyDesk,
+  createIncubateeMeetingRequest,
   updateIncubateeProfile,
   getSubmissionById,
   updateSubmissionStatus,
@@ -1318,4 +859,5 @@ module.exports = {
   queueSupportTicket,
   advanceSupportTicket,
   createClaim,
+  updatePresentationUpload,
 }

@@ -22,38 +22,230 @@ import IncubateeSubmissionsPage from './incubatee/submissions/IncubateeSubmissio
 import IncubateeSupportPage from './incubatee/support/IncubateeSupportPage'
 import NotificationsPage from './shared/NotificationsPage'
 import SettingsPage from './shared/SettingsPage'
+import { getActiveRole, getAuthSession } from './lib/api'
+
+const roleHomeRoute = {
+  admin: '/admin/dashboard',
+  faculty: '/faculty/dashboard',
+  incubatee: '/incubatee/dashboard',
+}
+
+function RootRedirect() {
+  const session = getAuthSession()
+  const role = session?.user?.role || getActiveRole()
+
+  if (!session || !role) {
+    return <Navigate to="/login" replace />
+  }
+
+  return <Navigate to={roleHomeRoute[role] || '/login'} replace />
+}
+
+function ProtectedRoute({ children, allowedRole = null }) {
+  const session = getAuthSession()
+  const role = session?.user?.role || getActiveRole()
+
+  if (!session || !role) {
+    return <Navigate to="/login" replace />
+  }
+
+  if (allowedRole && role !== allowedRole) {
+    return <Navigate to={roleHomeRoute[role] || '/login'} replace />
+  }
+
+  return children
+}
+
+function LoginRoute() {
+  const session = getAuthSession()
+  const role = session?.user?.role || getActiveRole()
+
+  if (!session || !role) {
+    return <LoginPage />
+  }
+
+  return <Navigate to={roleHomeRoute[role] || '/login'} replace />
+}
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="/login" element={<LoginRoute />} />
         <Route path="/forgot-password" element={<ForgotResetPage />} />
 
-        <Route path="/faculty/dashboard" element={<FacultyDashboardPage />} />
-        <Route path="/faculty/reviews" element={<FacultyReviewsPage />} />
-        <Route path="/faculty/mentorship" element={<FacultyMentorshipPage />} />
-        <Route path="/faculty/interns" element={<FacultyInternsPage />} />
+        <Route
+          path="/faculty/dashboard"
+          element={
+            <ProtectedRoute allowedRole="faculty">
+              <FacultyDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/faculty/reviews"
+          element={
+            <ProtectedRoute allowedRole="faculty">
+              <FacultyReviewsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/faculty/mentorship"
+          element={
+            <ProtectedRoute allowedRole="faculty">
+              <FacultyMentorshipPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/faculty/interns"
+          element={
+            <ProtectedRoute allowedRole="faculty">
+              <FacultyInternsPage />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-        <Route path="/admin/incubatees" element={<AdminIncubateesPage />} />
-        <Route path="/admin/faculty" element={<AdminFacultyPage />} />
-        <Route path="/admin/finance" element={<AdminFinancePage />} />
-        <Route path="/admin/system" element={<AdminSystemPage />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/incubatees"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminIncubateesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/faculty"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminFacultyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/finance"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminFinancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/system"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminSystemPage />
+            </ProtectedRoute>
+          }
+        />
 
-        <Route path="/incubatee/dashboard" element={<IncubateeDashboardPage />} />
-        <Route path="/incubatee/projects" element={<IncubateeProjectsPage />} />
-        <Route path="/incubatee/submissions" element={<IncubateeSubmissionsPage />} />
-        <Route path="/incubatee/faculty" element={<IncubateeFacultyPage />} />
-        <Route path="/incubatee/finance" element={<IncubateeFinancePage />} />
-        <Route path="/incubatee/support" element={<IncubateeSupportPage />} />
-        <Route path="/incubatee/interns" element={<IncubateeInternsPage />} />
-        <Route path="/incubatee/progress" element={<IncubateeProgressPage />} />
-        <Route path="/incubatee/presentations" element={<IncubateePresentationsPage />} />
-        <Route path="/incubatee/profile" element={<IncubateeProfilePage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route
+          path="/incubatee/dashboard"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateeDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incubatee/projects"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateeProjectsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incubatee/submissions"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateeSubmissionsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incubatee/faculty"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateeFacultyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incubatee/finance"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateeFinancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incubatee/support"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateeSupportPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incubatee/interns"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateeInternsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incubatee/progress"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateeProgressPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incubatee/presentations"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateePresentationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/incubatee/profile"
+          element={
+            <ProtectedRoute allowedRole="incubatee">
+              <IncubateeProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   )
