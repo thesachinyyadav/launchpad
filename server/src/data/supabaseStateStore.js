@@ -84,8 +84,32 @@ async function saveRuntimeState(state) {
   return true
 }
 
+async function loadAuthUsersFromSupabase() {
+  const client = getSupabaseClient()
+
+  if (!client) {
+    return []
+  }
+
+  const { data, error } = await client
+    .from('users')
+    .select('id, full_name, email, role, password_hash, is_active')
+    .eq('is_active', true)
+
+  if (error) {
+    if (String(error.message || '').includes('relation') && String(error.message || '').includes('does not exist')) {
+      return []
+    }
+
+    throw new Error(error.message || 'Unable to load auth users from Supabase.')
+  }
+
+  return Array.isArray(data) ? data : []
+}
+
 module.exports = {
   isSupabaseStateEnabled,
   loadRuntimeState,
   saveRuntimeState,
+  loadAuthUsersFromSupabase,
 }

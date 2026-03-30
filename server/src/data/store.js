@@ -1,6 +1,7 @@
 const { randomUUID } = require('node:crypto')
 const {
   isSupabaseStateEnabled,
+  loadAuthUsersFromSupabase,
   loadRuntimeState,
   saveRuntimeState,
 } = require('./supabaseStateStore')
@@ -378,6 +379,17 @@ async function ensureDbHydrated() {
       const runtimeState = await loadRuntimeState(serializeDbState())
       const normalized = normalizePersistedDbState(runtimeState)
       applyDbState(normalized)
+
+      const authUsers = await loadAuthUsersFromSupabase()
+      if (authUsers.length) {
+        db.users = authUsers.map((item) => ({
+          id: item.id,
+          name: item.full_name || item.email,
+          email: item.email,
+          role: item.role,
+          password: item.password_hash,
+        }))
+      }
     } catch (error) {
       console.error('[store] Supabase runtime state load failed, using in-memory fallback:', error.message)
     } finally {
