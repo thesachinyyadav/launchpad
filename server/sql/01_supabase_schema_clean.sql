@@ -954,9 +954,9 @@ begin
   v_notification_id := lp_create_notification(
     v_title,
     v_message,
-    'faculty',
-    case when v_review_status = 'rework_requested' then 'high' else 'medium' end,
-    'update',
+    'faculty'::notification_source,
+    (case when v_review_status = 'rework_requested' then 'high' else 'medium' end)::notification_priority,
+    'update'::notification_category,
     array['incubatee', 'admin']::app_role[]
   );
 
@@ -1029,9 +1029,9 @@ begin
   v_notification_id := lp_create_notification(
     v_title,
     v_message,
-    'admin',
-    case when v_status = 'rejected' then 'high' else 'medium' end,
-    'update',
+    'admin'::notification_source,
+    (case when v_status = 'rejected' then 'high' else 'medium' end)::notification_priority,
+    'update'::notification_category,
     array['incubatee', 'faculty']::app_role[]
   );
 
@@ -1078,9 +1078,9 @@ begin
   v_notification_id := lp_create_notification(
     'Campaign Queued',
     v_message,
-    'system',
-    'low',
-    'system',
+    'system'::notification_source,
+    'low'::notification_priority,
+    'system'::notification_category,
     v_roles
   );
 
